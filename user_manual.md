@@ -38,11 +38,3 @@ make
    ```bash
    ./verifier path/to/a.param proof_demo.bin
    ```
-
-## FAQ
-- Q: What is this?
-- A:This is a demo to show the internal working of groth16 protocol.
-
-
-## CI Check Trigger
-- Updated for Lab 2
