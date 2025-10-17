@@ -1,0 +1,36 @@
+name: Docs Quality
+on:
+  pull_request:
+    paths: ["**/*.md", ".vale.ini", ".vale/**", ".markdownlint.json"]
+  push:
+    branches: [ main, master ]
+    paths: ["**/*.md", ".vale.ini", ".vale/**", ".markdownlint.json"]
+permissions: { contents: read }
+concurrency:
+  group: docs-quality-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  vale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: curl -sL https://github.com/errata-ai/vale/releases/latest/download/vale_Linux_64-bit.tar.gz | tar -xz && sudo mv vale /usr/local/bin/
+      - run: mkdir -p .vale/styles/Vocab/Project && touch .vale/styles/Vocab/Project/accept.txt
+      - run: shopt -s globstar nullglob; FILES=( **/*.md ); [ ${#FILES[@]} -eq 0 ] && exit 0 || vale "${FILES[@]}"
+  markdownlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm i -D markdownlint-cli2
+      - run: npx markdownlint-cli2 "**/*.md"
+  spelling_and_style:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python -m pip install --upgrade pip && pip install codespell proselint
+      - run: codespell -q 3 -L crate,te,fo "**/*.md"
+      - run: set +e; proselint "**/*.md"
