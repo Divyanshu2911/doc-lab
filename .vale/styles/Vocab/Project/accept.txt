@@ -1,0 +1,9 @@
+IIITA
+DeFi
+Web3
+TUF
+zkSNARK
+CP-ABE
+Proselint
+markdownlint
+codespell
