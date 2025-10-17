@@ -1,0 +1,9 @@
+# Dependencies / builds / caches
+node_modules/
+dist/
+build/
+coverage/
+.out/
+.next/
+.vscode/
+.git/
