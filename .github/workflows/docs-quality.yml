@@ -1,0 +1,80 @@
+name: Docs Quality
+
+on:
+  pull_request:
+    paths:
+      - "**/*.md"
+      - ".vale.ini"
+      - ".vale/**"
+      - ".markdownlint.json"
+  push:
+    branches: [ main, master ]
+    paths:
+      - "**/*.md"
+      - ".vale.ini"
+      - ".vale/**"
+      - ".markdownlint.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vale:
+    name: Vale
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Vale
+        run: |
+          curl -sL https://github.com/errata-ai/vale/releases/latest/download/vale_Linux_64-bit.tar.gz \
+          | tar -xz && sudo mv vale /usr/local/bin/
+          vale --version
+      - name: Ensure vocab exists (safety)
+        run: |
+          mkdir -p .vale/styles/Vocab/Project
+          [ -f .vale/styles/Vocab/Project/accept.txt ] || touch .vale/styles/Vocab/Project/accept.txt
+      - name: Run Vale on markdown
+        run: |
+          shopt -s globstar nullglob
+          FILES=( **/*.md )
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "No Markdown files found."; exit 0
+          fi
+          vale "${FILES[@]}"
+
+  markdownlint:
+    name: markdownlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install markdownlint-cli2
+        run: npm i -D markdownlint-cli2
+      - name: Run markdownlint
+        run: npx markdownlint-cli2 "**/*.md"
+
+  spelling_and_style:
+    name: codespell + proselint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install codespell proselint
+      - name: Run codespell
+        run: codespell -q 3 -L crate,te,fo "**/*.md"
+      - name: Run proselint (non-fatal preview)
+        run: |
+          set +e
+          proselint "**/*.md"
+          # To make proselint block merges, remove 'set +e' and let it fail the job.
